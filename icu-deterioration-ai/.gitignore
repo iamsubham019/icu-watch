@@ -1,0 +1,78 @@
+# ========================
+# ICU Deterioration AI
+# .gitignore
+# ========================
+
+# --- CRITICAL: Never commit patient data ---
+data/raw/
+data/processed/
+data/samples/
+*.csv
+*.parquet
+*.feather
+*.h5
+*.hdf5
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.env
+.venv
+ENV/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# --- ML Artifacts ---
+models/checkpoints/
+*.pt
+*.pth
+*.pkl
+*.joblib
+mlruns/
+mlflow.db
+
+# --- Environment Variables ---
+.env
+.env.local
+.env.production
+*.env
+
+# --- Node / React ---
+dashboard/node_modules/
+dashboard/build/
+dashboard/.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Docker ---
+.docker/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# --- IDE ---
+.vscode/
+.idea/
+*.iml
+
+# --- Logs ---
+logs/
+*.log
+
+# --- Research (large files) ---
+research/papers/*.pdf
