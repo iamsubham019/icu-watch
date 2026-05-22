@@ -299,7 +299,7 @@ Week 8  ░░░░░░░░░░░░░░░░  🚀 Full system demo
 | | Name | Role | GitHub |
 |-|------|------|--------|
 | 🧠 | **Subham Pal** | ML Core · Feature Engineering · SHAP Explainability | [@iamsubham019](https://github.com/iamsubham019) |
-| ⚙️ | **Swarnali Ghosh** | Backend · Alert Logic · React Dashboard | — |
+| ⚙️ | **Swarnali Ghosh** | Backend · Alert Logic · React Dashboard | [@swarnali2005](https://github.com/swarnali2005) |
 
 </div>
 
