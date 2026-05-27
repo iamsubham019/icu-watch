@@ -137,6 +137,20 @@ function PatientCard({ patientId }) {
   );
 }
 
+function statCardStyle(borderColor) {
+  return {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '16px 24px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    borderTop: `4px solid ${borderColor}`,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    minWidth: '120px',
+  };
+}
+
 function cardStyle(borderColor) {
   return {
     backgroundColor: 'white',
@@ -148,13 +162,31 @@ function cardStyle(borderColor) {
   };
 }
 
+
+
 function App() {
   const [patients, setPatients] = useState([]);
+  const [stats, setStats] = useState({ critical: 0, watch: 0, stable: 0 });
+const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/patients`)
       .then(res => res.json())
-      .then(data => setPatients(data.patients))
+      .then(async data => {
+        setPatients(data.patients);
+        const preds = {};
+        for (const pid of data.patients) {
+          const res = await fetch(`${API_URL}/patient/${pid}/predict`);
+          const pred = await res.json();
+          preds[pid] = pred;
+        }
+        
+        const critical = Object.values(preds).filter(p => p.severity === 'critical').length;
+        const watch    = Object.values(preds).filter(p => p.severity === 'watch').length;
+        const stable   = Object.values(preds).filter(p => p.severity === 'stable').length;
+        setStats({ critical, watch, stable });
+        setLoaded(true);
+      })
       .catch(err => console.error(err));
   }, []);
 
@@ -178,6 +210,26 @@ function App() {
         </div>
         <div style={{ marginLeft: 'auto', color: '#95a5a6', fontSize: '12px' }}>
           {patients.length} patients monitored • Updates every 30s
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div style={{
+        padding: '16px 32px',
+        display: 'flex',
+        gap: '16px',
+      }}>
+        <div style={statCardStyle('#e74c3c')}>
+          <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#e74c3c' }}>{stats.critical}</span>
+          <span style={{ fontSize: '13px', color: '#7f8c8d' }}>🔴 Critical</span>
+        </div>
+        <div style={statCardStyle('#f39c12')}>
+          <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#f39c12' }}>{stats.watch}</span>
+          <span style={{ fontSize: '13px', color: '#7f8c8d' }}>🟡 Watch</span>
+        </div>
+        <div style={statCardStyle('#2ecc71')}>
+          <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#2ecc71' }}>{stats.stable}</span>
+          <span style={{ fontSize: '13px', color: '#7f8c8d' }}>🟢 Stable</span>
         </div>
       </div>
 
