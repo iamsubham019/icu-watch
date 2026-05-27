@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.schemas import VitalsInput, PredictionOutput, AlertSeverity
 import uvicorn
 import random
+from src.explainability.alert_logic import AlertEngine
+alert_engine = AlertEngine()
 
 app = FastAPI(
     title="ICU Deterioration Prediction API",
@@ -195,19 +197,20 @@ async def predict(patient_id: str):
 
     risk_score = max(0.0, min(round(risk_score + random.uniform(-0.05, 0.05), 2), 1.0))
 
-    if risk_score >= 0.75:
-        severity = AlertSeverity.CRITICAL
-    elif risk_score >= 0.45:
-        severity = AlertSeverity.WATCH
-    else:
-        severity = AlertSeverity.STABLE
+
+    alert = alert_engine.process_prediction(
+        patient_id=patient_id,
+        probability=risk_score,
+        confidence=round(random.uniform(0.75, 0.95), 2),
+        top_drivers=["respiratory_rate", "systolic_bp", "spo2"],
+    )
 
     return PredictionOutput(
         patient_id=patient_id,
-        deterioration_probability=risk_score,
-        severity=severity,
-        confidence=round(random.uniform(0.75, 0.95), 2),
-        top_contributing_vitals=["respiratory_rate", "systolic_bp", "spo2"],
+        deterioration_probability=alert.probability,
+        severity=alert.severity,
+        confidence=alert.confidence,
+        top_contributing_vitals=alert.top_drivers,
         prediction_horizon_hours=6
     )
 
