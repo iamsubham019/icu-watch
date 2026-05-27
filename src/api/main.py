@@ -1,6 +1,6 @@
 """
 ICU Deterioration Prediction API
-Authors: Swarnali Ghosh & Subham Pal
+Authors: Swarnali Ghosh 
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
