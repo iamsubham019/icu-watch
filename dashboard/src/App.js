@@ -167,7 +167,8 @@ function cardStyle(borderColor) {
 function App() {
   const [patients, setPatients] = useState([]);
   const [stats, setStats] = useState({ critical: 0, watch: 0, stable: 0 });
-const [loaded, setLoaded] = useState(false);
+  const [severityMap, setSeverityMap] = useState({});
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/patients`)
@@ -185,6 +186,7 @@ const [loaded, setLoaded] = useState(false);
         const watch    = Object.values(preds).filter(p => p.severity === 'watch').length;
         const stable   = Object.values(preds).filter(p => p.severity === 'stable').length;
         setStats({ critical, watch, stable });
+        setSeverityMap(Object.fromEntries(Object.entries(preds).map(([k, v]) => [k, v.severity])));
         setLoaded(true);
       })
       .catch(err => console.error(err));
@@ -240,7 +242,14 @@ const [loaded, setLoaded] = useState(false);
         gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
         gap: '16px',
       }}>
-        {patients.map(pid => (
+        {patients
+        .sort((a, b) => {
+          const order = { critical: 0, watch: 1, stable: 2 };
+          const aScore = order[severityMap[a] || 'stable'] ?? 2;
+          const bScore = order[severityMap[b] || 'stable'] ?? 2;
+          return aScore - bScore;
+        })
+        .map(pid => (
           <PatientCard key={pid} patientId={pid} />
         ))}
       </div>
