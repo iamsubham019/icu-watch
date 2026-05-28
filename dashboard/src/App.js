@@ -119,19 +119,34 @@ function PatientCard({ patientId }) {
         <VitalItem label="Temp"  value={patient?.vitals?.temperature}       unit="°C" />
       </div>
 
-      {/* Top drivers */}
-      <div>
-        <span style={{ fontSize: '11px', color: '#7f8c8d' }}>Top drivers: </span>
-        {prediction?.top_contributing_vitals?.map((v, i) => (
-          <span key={i} style={{
-            fontSize: '11px',
-            backgroundColor: '#eaf2ff',
-            color: '#2980b9',
-            borderRadius: '10px',
-            padding: '2px 8px',
-            marginRight: '4px',
-          }}>{v}</span>
-        ))}
+    {/* SHAP Chart */}
+      <div style={{ marginTop: '8px' }}>
+        <span style={{ fontSize: '11px', color: '#7f8c8d', display: 'block', marginBottom: '6px' }}>
+          Risk drivers:
+        </span>
+        {prediction?.shap_values &&
+          Object.entries(prediction.shap_values)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([vital, value], i) => (
+              <div key={i} style={{ marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                  <span style={{ fontSize: '10px', color: '#7f8c8d' }}>{vital}</span>
+                  <span style={{ fontSize: '10px', color: '#e74c3c', fontWeight: 'bold' }}>
+                    +{value.toFixed(3)}
+                  </span>
+                </div>
+                <div style={{ backgroundColor: '#ecf0f1', borderRadius: '4px', height: '5px' }}>
+                  <div style={{
+                    width: `${Math.min(value * 300, 100)}%`,
+                    backgroundColor: '#e74c3c',
+                    height: '5px',
+                    borderRadius: '4px',
+                  }} />
+                </div>
+              </div>
+            ))
+        }
       </div>
     </div>
   );
