@@ -169,27 +169,37 @@ function App() {
   const [stats, setStats] = useState({ critical: 0, watch: 0, stable: 0 });
   const [severityMap, setSeverityMap] = useState({});
   const [loaded, setLoaded] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch(`${API_URL}/patients`);
+      const data = await res.json();
+      setPatients(data.patients);
+      const preds = {};
+      for (const pid of data.patients) {
+        const r = await fetch(`${API_URL}/patient/${pid}/predict`);
+        const pred = await r.json();
+        preds[pid] = pred;
+      }
+      const critical = Object.values(preds).filter(p => p.severity === 'critical').length;
+      const watch    = Object.values(preds).filter(p => p.severity === 'watch').length;
+      const stable   = Object.values(preds).filter(p => p.severity === 'stable').length;
+      setStats({ critical, watch, stable });
+      setSeverityMap(Object.fromEntries(Object.entries(preds).map(([k, v]) => [k, v.severity])));
+      setLoaded(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    fetch(`${API_URL}/patients`)
-      .then(res => res.json())
-      .then(async data => {
-        setPatients(data.patients);
-        const preds = {};
-        for (const pid of data.patients) {
-          const res = await fetch(`${API_URL}/patient/${pid}/predict`);
-          const pred = await res.json();
-          preds[pid] = pred;
-        }
-        
-        const critical = Object.values(preds).filter(p => p.severity === 'critical').length;
-        const watch    = Object.values(preds).filter(p => p.severity === 'watch').length;
-        const stable   = Object.values(preds).filter(p => p.severity === 'stable').length;
-        setStats({ critical, watch, stable });
-        setSeverityMap(Object.fromEntries(Object.entries(preds).map(([k, v]) => [k, v.severity])));
-        setLoaded(true);
-      })
-      .catch(err => console.error(err));
+    loadData();
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -210,8 +220,26 @@ function App() {
             AI-Powered Patient Deterioration Monitoring
           </p>
         </div>
-        <div style={{ marginLeft: 'auto', color: '#95a5a6', fontSize: '12px' }}>
-          {patients.length} patients monitored • Updates every 30s
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ color: '#95a5a6', fontSize: '12px' }}>
+            {patients.length} patients monitored • Updates every 30s
+          </span>
+          <button
+            onClick={loadData}
+            disabled={refreshing}
+            style={{
+              backgroundColor: refreshing ? '#95a5a6' : '#3498db',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              fontSize: '13px',
+              fontWeight: 'bold',
+            }}
+          >
+            {refreshing ? '⏳ Refreshing...' : '🔄 Refresh'}
+          </button>
         </div>
       </div>
 
