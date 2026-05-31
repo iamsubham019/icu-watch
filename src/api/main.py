@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.schemas import VitalsInput, PredictionOutput, AlertSeverity
 import uvicorn
 import random
+from src.api.model_loader import model_loader
 import json
 from pathlib import Path
 from src.explainability.alert_logic import AlertEngine
@@ -37,7 +38,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -206,16 +207,15 @@ async def predict(patient_id: str):
 
     vitals = MOCK_PATIENTS[patient_id]["vitals"]
 
-    # Mock prediction logic based on vitals
-    risk_score = 0
-    if vitals["heart_rate"] > 100:       risk_score += 0.2
-    if vitals["systolic_bp"] < 100:      risk_score += 0.25
-    if vitals["spo2"] < 95:              risk_score += 0.2
-    if vitals["respiratory_rate"] > 20:  risk_score += 0.2
-    if vitals["temperature"] > 38.5:     risk_score += 0.15
+    # Run real LSTM model (or mock if model not loaded)
+    result = model_loader.predict(vitals)
+    risk_score = result['probability']
 
-    risk_score = max(0.0, min(round(risk_score + random.uniform(-0.05, 0.05), 2), 1.0))
-
+    # Get SHAP values
+    shap_values = {
+        k: round(v * (1 + random.uniform(-0.1, 0.1)), 4)
+        for k, v in MOCK_SHAP.items()
+    }
 
     alert = alert_engine.process_prediction(
         patient_id=patient_id,
@@ -223,12 +223,6 @@ async def predict(patient_id: str):
         confidence=round(random.uniform(0.75, 0.95), 2),
         top_drivers=["respiratory_rate", "systolic_bp", "spo2"],
     )
-
-    # Get SHAP values for this patient
-    shap_values = {
-        k: round(v * (1 + random.uniform(-0.1, 0.1)), 4)
-        for k, v in MOCK_SHAP.items()
-    }
 
     return {
         "patient_id": patient_id,
@@ -238,8 +232,8 @@ async def predict(patient_id: str):
         "top_contributing_vitals": alert.top_drivers,
         "prediction_horizon_hours": 6,
         "shap_values": shap_values,
+        "model_used": result['model'],
     }
-
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
