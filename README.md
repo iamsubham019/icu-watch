@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/Status-In%20Development-yellow?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
 <img src="https://img.shields.io/badge/PyTorch-2.3-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" />
 <img src="https://img.shields.io/badge/FastAPI-0.111-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
@@ -17,9 +17,21 @@
 
 <br/>
 
-[📖 Documentation](#-getting-started) • [🏗️ Architecture](#-system-architecture) • [📊 Results](#-evaluation-metrics) • [🤝 Contributing](#-team)
+[🌐 Live Dashboard](https://icu-watch.vercel.app) • [⚙️ API Docs](https://icu-watch.onrender.com/docs) • [📖 Documentation](#-getting-started) • [🏗️ Architecture](#-system-architecture)
 
 </div>
+
+---
+
+## 🌐 Live Demo
+
+| Service | URL |
+|---------|-----|
+| 🖥️ **Dashboard** | https://icu-watch.vercel.app |
+| ⚙️ **API Docs** | https://icu-watch.onrender.com/docs |
+| 📦 **GitHub** | https://github.com/iamsubham019/icu-watch |
+
+> ⚠️ The free backend may take 30–50 seconds to wake up on first visit. Click **🔄 Refresh** on the dashboard after it loads.
 
 ---
 
@@ -31,9 +43,9 @@ Every ICU nurse manages 2–4 critically ill patients simultaneously. Existing s
 
 The real problem isn't *detection*. It's **intelligent, calibrated, trustworthy alerting.**
 
-When a patient's condition starts to deteriorate, the window to intervene is narrow. Sepsis caught 6 hours early has a survival rate dramatically higher than sepsis caught at crisis point. Current rule-based systems miss the subtle, multivariate patterns that precede deterioration.
+When a patient's condition starts to deteriorate, the window to intervene is narrow. Sepsis caught 6 hours early has a dramatically higher survival rate than sepsis caught at crisis point. Current rule-based systems miss the subtle, multivariate patterns that precede deterioration.
 
-**ICU-Watch** bridges that gap.
+**ICU-Watch bridges that gap.**
 
 ---
 
@@ -55,8 +67,8 @@ Unlike rule-based systems, ICU-Watch learns complex temporal patterns across mul
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        MIMIC-III Database                       │
-│         53,423 ICU admissions · 38,597 adult patients           │
+│                  PhysioNet Challenge 2019 Dataset               │
+│            40,336 ICU patients · 1.1M training sequences        │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
                            ▼
@@ -64,7 +76,7 @@ Unlike rule-based systems, ICU-Watch learns complex temporal patterns across mul
 │                      Data Pipeline                              │
 │   extract.py → preprocess.py → feature_store.py                │
 │   • Outlier removal    • Hourly resampling                      │
-│   • Rolling features   • Label assignment (6h horizon)         │
+│   • 104 engineered features   • 6h ahead labels                │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
                            ▼
@@ -74,15 +86,15 @@ Unlike rule-based systems, ICU-Watch learns complex temporal patterns across mul
 │   [NEWS2 Baseline] ──→ [Logistic Regression] ──→ [LSTM]        │
 │                                                     │           │
 │   Bidirectional LSTM + Temporal Attention           │           │
-│   Input: (batch, 12h sequence, 7 vitals)            │           │
+│   Input: (batch, 12h sequence, 104 features)        │           │
 │   Output: P(deterioration within 6h)                │           │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   Explainability Engine                         │
-│   SHAP DeepExplainer → per-patient, per-vital importance       │
-│   "SpO2 drop + rising HR drove this Critical alert"            │
+│   Integrated Gradients → per-patient, per-vital importance     │
+│   "Resp instability + BUN + Hct drove this Critical alert"     │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
                            ▼
@@ -96,8 +108,9 @@ Unlike rule-based systems, ICU-Watch learns complex temporal patterns across mul
 ┌──────────────────────────┬──────────────────────────────────────┐
 │     FastAPI Backend      │         React Dashboard              │
 │   REST endpoints         │   Real-time vitals charts            │
-│   Pydantic validation    │   Prediction timeline                │
-│   PostgreSQL queries     │   SHAP waterfall per patient         │
+│   Alert engine           │   SHAP risk driver visualization     │
+│   Model integration      │   Patient detail modal               │
+│   Render deployment      │   Vercel deployment                  │
 └──────────────────────────┴──────────────────────────────────────┘
 ```
 
@@ -109,39 +122,35 @@ Unlike rule-based systems, ICU-Watch learns complex temporal patterns across mul
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Data** | MIMIC-III, PostgreSQL | Clinical database, 53K+ ICU admissions |
-| **ML Core** | PyTorch 2.3, scikit-learn | LSTM model, baseline models |
-| **Explainability** | SHAP | Per-prediction vital sign importance |
+| **Data** | PhysioNet Challenge 2019 | 40,336 ICU patients |
+| **ML Core** | PyTorch 2.3, scikit-learn | BiLSTM + Attention model |
+| **Explainability** | Integrated Gradients | Per-prediction vital importance |
 | **Experiment Tracking** | MLflow | Model versioning, metric logging |
-| **Backend** | FastAPI, Pydantic, SQLAlchemy | REST API, data validation |
-| **Frontend** | React 18, Recharts, TailwindCSS | Clinical dashboard |
-| **Infrastructure** | Docker, Docker Compose | Containerized full stack |
-| **Testing** | pytest, pytest-asyncio | Unit + integration tests |
+| **Backend** | FastAPI, Pydantic | REST API, alert engine |
+| **Frontend** | React 18, TailwindCSS | Clinical dashboard |
+| **Deployment** | Render + Vercel | Free tier, globally accessible |
 
 </div>
 
 ---
 
-## 📊 Evaluation Metrics
+## 📊 Model Results
 
-We evaluate against **NEWS2** — the clinical standard currently used in hospitals. Beating it is the core contribution.
-
-| Metric | Description | Target |
-|--------|------------|--------|
-| **AUROC** | Primary discrimination metric | > NEWS2 baseline |
-| **PR-AUC** | Handles severe class imbalance | > NEWS2 baseline |
-| **Calibration** | Are confidence scores trustworthy? | ECE < 0.05 |
-| **Alert Precision** | % of alerts that were clinically meaningful | > 70% |
-| **Alert Fatigue Reduction** | Redundant alerts suppressed | > 40% reduction |
-
-> Results will be updated here as experiments complete.
+Our BiLSTM beats every baseline including the clinical standard used in hospitals:
 
 | Model | AUROC | PR-AUC | Notes |
 |-------|-------|--------|-------|
-| NEWS2 Baseline | `TBD` | `TBD` | Clinical standard |
-| Logistic Regression | `TBD` | `TBD` | Simple ML baseline |
-| LSTM v1 | `TBD` | `TBD` | First deep model |
-| LSTM + Attention | `TBD` | `TBD` | Current best |
+| NEWS2 (Clinical Standard) | `0.6095` | `0.0281` | What hospitals currently use |
+| Logistic Regression | `0.7179` | `0.0732` | Simple ML baseline |
+| Random Forest | `0.7402` | `0.0772` | Best non-temporal model |
+| **BiLSTM + Attention** | **`0.7471`** | **`0.0803`** | ✅ **Our model — beats all** |
+
+**+13.76 AUROC points over the clinical standard (NEWS2)**
+
+### Top SHAP Drivers (Global)
+1. **BUN** (Blood Urea Nitrogen) — kidney stress, early sepsis signal
+2. **Hct** (Hematocrit) — fluid shifts, septic shock indicator
+3. **Resp_std4h** — respiratory instability over 4h — the temporal signal rule-based systems miss
 
 ---
 
@@ -150,49 +159,39 @@ We evaluate against **NEWS2** — the clinical standard currently used in hospit
 ```
 icu-watch/
 │
-├── 📁 data/
-│   ├── raw/                    # MIMIC-III raw extracts (gitignored)
-│   ├── processed/              # Cleaned, feature-engineered data
-│   └── samples/                # Anonymized samples for testing
-│
 ├── 📓 notebooks/
-│   ├── 01_eda.ipynb            # Exploratory data analysis
-│   ├── 02_feature_engineering.ipynb
-│   ├── 03_baseline_model.ipynb # NEWS2 replication
-│   └── 04_deep_model.ipynb     # LSTM training
+│   ├── 01_eda.ipynb                  # 40,336 patients analyzed
+│   ├── 02_feature_engineering.ipynb  # 104 features, 1.1M sequences
+│   ├── 03_baseline_model.ipynb       # NEWS2, LR, RF baselines
+│   ├── 04_deep_model.ipynb           # BiLSTM training + evaluation
+│   └── 05_shap_explainability.ipynb  # SHAP analysis
 │
 ├── 📁 src/
 │   ├── data/
-│   │   ├── extract.py          # MIMIC-III SQL extraction
-│   │   ├── preprocess.py       # Cleaning, resampling, labeling
-│   │   └── feature_store.py    # Feature engineering
+│   │   ├── extract.py                # Data extraction
+│   │   ├── preprocess.py             # Cleaning, resampling, labeling
+│   │   └── feature_store.py          # Feature engineering
 │   ├── models/
-│   │   ├── baseline.py         # NEWS2 clinical score
-│   │   ├── lstm_model.py       # Bidirectional LSTM + attention
-│   │   └── tft_model.py        # Temporal Fusion Transformer (v2)
+│   │   ├── baseline.py               # NEWS2 clinical score
+│   │   └── lstm_model.py             # BiLSTM + Attention
 │   ├── explainability/
-│   │   ├── shap_engine.py      # SHAP DeepExplainer wrapper
-│   │   └── alert_logic.py      # Smart alert suppression
+│   │   ├── shap_engine.py            # SHAP explanations
+│   │   └── alert_logic.py            # Smart alert suppression
 │   └── api/
-│       ├── main.py             # FastAPI application
-│       └── schemas.py          # Pydantic models
+│       ├── main.py                   # FastAPI application
+│       ├── model_loader.py           # LSTM model integration
+│       └── schemas.py                # Pydantic models
 │
-├── 📁 dashboard/               # React frontend
+├── 📁 dashboard/                     # React frontend
 │   └── src/
-│       ├── components/         # Reusable UI components
-│       └── pages/              # Dashboard pages
+│       └── App.js                    # Full dashboard application
 │
 ├── 📁 research/
-│   ├── papers/                 # Reference papers
-│   ├── notes/                  # Experiment logs
-│   └── experiments/            # MLflow artifacts
+│   └── notes/                        # EDA plots, model charts, SHAP visualizations
 │
-├── 📁 tests/                   # Unit + integration tests
-├── 📁 docs/                    # Extended documentation
-├── docker-compose.yml
-├── requirements.txt
-├── .env.example
-└── CONTRIBUTING.md
+├── render.yaml                       # Render deployment config
+├── docker-compose.yml                # Local full stack
+└── requirements.txt
 ```
 
 ---
@@ -200,11 +199,9 @@ icu-watch/
 ## 🚀 Getting Started
 
 ### Prerequisites
-
 - Python `3.10+`
 - Node.js `18+`
-- Docker + Docker Compose
-- MIMIC-III access credentials
+- Docker + Docker Compose (optional)
 
 ### 1. Clone the repository
 
@@ -213,82 +210,49 @@ git clone https://github.com/iamsubham019/icu-watch.git
 cd icu-watch
 ```
 
-### 2. Set up environment
+### 2. Set up Python environment
 
 ```bash
-# Create virtual environment
 python -m venv venv
-
-# Activate (Windows)
-venv\Scripts\activate
-
-# Activate (Mac/Linux)
-source venv/bin/activate
-
-# Install dependencies
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # Mac/Linux
 pip install -r requirements.txt
 ```
 
-### 3. Configure environment variables
+### 3. Run the backend
 
 ```bash
-cp .env.example .env
-# Edit .env with your database credentials
+python -m uvicorn src.api.main:app --reload --port 8000
 ```
 
-### 4. Start the full stack
+### 4. Run the dashboard
 
 ```bash
-docker-compose up --build
+cd dashboard
+npm install
+npm start
 ```
 
-| Service | URL |
-|---------|-----|
+| Service | Local URL |
+|---------|-----------|
 | React Dashboard | http://localhost:3000 |
 | FastAPI Backend | http://localhost:8000 |
 | API Docs (Swagger) | http://localhost:8000/docs |
-| MLflow Tracking | http://localhost:5000 |
-
----
-
-## 🗄️ MIMIC-III Data Access
-
-This project uses the **MIMIC-III Clinical Database** — a freely available, de-identified health dataset of ICU patients.
-
-**Steps to get access:**
-
-1. Register at [physionet.org](https://physionet.org)
-2. Complete the **CITI "Data or Specimens Only Research"** training (~2 hours)
-3. Submit credentialing request — approval takes **3–7 days**
-4. Download and place data under `data/raw/`
-
-> ⚠️ **MIMIC-III data is never committed to this repository.** The `data/raw/` directory is in `.gitignore`. Both team members must obtain independent credentials.
 
 ---
 
 ## 🗓️ Development Roadmap
 
-```
-Week 1  ████████░░░░░░░░  Data extraction + EDA
-Week 2  ░░░░████████░░░░  Feature engineering + API skeleton
-Week 3  ░░░░░░░░████████  Baseline NEWS2 + Alert logic
-Week 4  ░░░░░░░░░░░░████  LSTM training + Dashboard vitals
-Week 5  ░░░░░░░░░░░░░░░█  SHAP engine + Visualization
-Week 6  ░░░░░░░░░░░░░░░░  Full stack integration + Docker
-Week 7  ░░░░░░░░░░░░░░░░  Research docs + Testing
-Week 8  ░░░░░░░░░░░░░░░░  🚀 Full system demo
-```
-
 | Week | Subham Pal (ML) | Swarnali Ghosh (Backend/Frontend) |
 |------|----------------|----------------------------------|
-| 1 | MIMIC extraction + EDA notebook | Repo setup + FastAPI skeleton |
-| 2 | Feature engineering pipeline | Patient schema + API endpoints |
-| 3 | Baseline NEWS2 model | Alert intelligence layer |
-| 4 | LSTM model trained + evaluated | Dashboard vitals display |
-| 5 | SHAP engine complete | SHAP visualization on dashboard |
-| 6 | Model → API integration | Docker + full stack running |
-| 7 | Research notes + experiment log | README + docs complete |
-| 8 | **Full system demo** | **Full system demo** |
+| 1 | EDA — 40,336 patients | Repo setup + FastAPI skeleton |
+| 2 | Feature engineering — 104 features | Patient schema + API endpoints |
+| 3 | Baseline models (NEWS2, LR, RF) | Alert intelligence layer |
+| 4 | BiLSTM trained — AUROC 0.7471 ✅ | Dashboard vitals display |
+| 5 | SHAP explainability complete | SHAP visualization on dashboard |
+| 6 | Real model integration | Docker + full stack running |
+| 7 | Research docs complete | README + deployment |
+| 8 | **🚀 Deployed Live** | **🚀 Deployed Live** |
 
 ---
 
@@ -309,19 +273,9 @@ Week 8  ░░░░░░░░░░░░░░░░  🚀 Full system demo
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for branching strategy, commit format, and file ownership.
 
-**Branch structure:**
-```
-main              ← stable, always working
-dev               ← integration branch
-subham/ml-core    ← ML features
-swarnali/backend  ← Backend + frontend features
-```
-
 ---
 
 ## 📄 Research References
-
-Key papers informing this work:
 
 - Churpek et al. — *Predicting Clinical Deterioration in the Hospital*, NEJM 2016
 - Tang et al. — *DeepSOFA: A Continuous Acuity Score for ICU Patients*
@@ -340,7 +294,7 @@ Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
 
 ## ⚠️ Disclaimer
 
-ICU-Watch is a **research prototype** and is **not intended for clinical use**. All model outputs must be validated by qualified medical professionals before any real-world application. Patient data used in development is de-identified and used strictly in accordance with PhysioNet's data use agreement.
+ICU-Watch is a **research prototype** and is **not intended for clinical use**. All model outputs must be validated by qualified medical professionals before any real-world application.
 
 ---
 
@@ -349,5 +303,7 @@ ICU-Watch is a **research prototype** and is **not intended for clinical use**. 
 *Built with purpose — because in critical care, every minute matters.*
 
 ⭐ Star this repo if you find it useful
+
+**[🌐 View Live Demo](https://icu-watch.vercel.app)**
 
 </div>
