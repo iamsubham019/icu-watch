@@ -42,11 +42,142 @@ function VitalItem({ label, value, unit }) {
     </div>
   );
 }
+function PatientModal({ patientId, onClose }) {
+  const [patient, setPatient] = useState(null);
+  const [prediction, setPrediction] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [vitalsRes, predictRes] = await Promise.all([
+        fetch(`${API_URL}/patient/${patientId}/vitals`),
+        fetch(`${API_URL}/patient/${patientId}/predict`),
+      ]);
+      setPatient(await vitalsRes.json());
+      setPrediction(await predictRes.json());
+    };
+    fetchData();
+  }, [patientId]);
+
+  if (!patient || !prediction) return (
+    <div style={modalOverlayStyle}>
+      <div style={modalStyle}>
+        <p>Loading...</p>
+      </div>
+    </div>
+  );
+
+  const severity = prediction.severity;
+  const borderColors = { critical: '#e74c3c', watch: '#f39c12', stable: '#2ecc71' };
+  const borderColor = borderColors[severity];
+
+  return (
+    <div style={modalOverlayStyle} onClick={onClose}>
+      <div style={modalStyle} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div>
+            <h2 style={{ margin: 0, color: '#2c3e50' }}>{patientId}</h2>
+            <span style={{ fontSize: '13px', color: '#7f8c8d' }}>Age: {patient.age}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <SeverityBadge severity={severity} />
+            <button onClick={onClose} style={{
+              background: 'none', border: '1px solid #bdc3c7',
+              borderRadius: '8px', padding: '6px 12px',
+              cursor: 'pointer', fontSize: '13px', color: '#7f8c8d'
+            }}>✕ Close</button>
+          </div>
+        </div>
+
+        {/* Risk Bar */}
+        <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontWeight: 'bold', color: '#2c3e50' }}>Deterioration Risk (6h)</span>
+            <span style={{ fontWeight: 'bold', color: borderColor, fontSize: '18px' }}>
+              {Math.round(prediction.deterioration_probability * 100)}%
+            </span>
+          </div>
+          <div style={{ backgroundColor: '#ecf0f1', borderRadius: '6px', height: '12px' }}>
+            <div style={{
+              width: `${prediction.deterioration_probability * 100}%`,
+              backgroundColor: borderColor,
+              height: '12px', borderRadius: '6px',
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
+          <div style={{ marginTop: '8px', fontSize: '12px', color: '#7f8c8d' }}>
+            Confidence: {Math.round(prediction.confidence * 100)}%
+          </div>
+        </div>
+
+        {/* Full Vitals */}
+        <div style={{ marginBottom: '20px' }}>
+          <h4 style={{ margin: '0 0 12px 0', color: '#2c3e50' }}>📊 Vital Signs</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+            <VitalItem label="Heart Rate"    value={patient.vitals?.heart_rate}       unit="bpm" />
+            <VitalItem label="Systolic BP"   value={patient.vitals?.systolic_bp}      unit="mmHg" />
+            <VitalItem label="Diastolic BP"  value={patient.vitals?.diastolic_bp}     unit="mmHg" />
+            <VitalItem label="SpO2"          value={patient.vitals?.spo2}             unit="%" />
+            <VitalItem label="Resp Rate"     value={patient.vitals?.respiratory_rate} unit="/min" />
+            <VitalItem label="Temperature"   value={patient.vitals?.temperature}      unit="°C" />
+            <VitalItem label="GCS"           value={patient.vitals?.gcs}              unit="/15" />
+          </div>
+        </div>
+
+        {/* SHAP Chart */}
+        <div>
+          <h4 style={{ margin: '0 0 12px 0', color: '#2c3e50' }}>🔍 Risk Drivers (SHAP)</h4>
+          {prediction.shap_values &&
+            Object.entries(prediction.shap_values)
+              .sort((a, b) => b[1] - a[1])
+              .map(([vital, value], i) => (
+                <div key={i} style={{ marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '13px', color: '#2c3e50', fontWeight: '500' }}>{vital}</span>
+                    <span style={{ fontSize: '13px', color: '#e74c3c', fontWeight: 'bold' }}>
+                      +{value.toFixed(4)}
+                    </span>
+                  </div>
+                  <div style={{ backgroundColor: '#ecf0f1', borderRadius: '4px', height: '8px' }}>
+                    <div style={{
+                      width: `${Math.min(value * 300, 100)}%`,
+                      backgroundColor: i === 0 ? '#e74c3c' : i === 1 ? '#e67e22' : '#3498db',
+                      height: '8px', borderRadius: '4px',
+                    }} />
+                  </div>
+                </div>
+              ))
+          }
+        </div>
+
+      </div>
+    </div>
+  );
+}
+const modalOverlayStyle = {
+  position: 'fixed', top: 0, left: 0,
+  width: '100%', height: '100%',
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  display: 'flex', alignItems: 'center',
+  justifyContent: 'center', zIndex: 1000,
+};
+
+const modalStyle = {
+  backgroundColor: 'white',
+  borderRadius: '16px',
+  padding: '24px',
+  width: '600px',
+  maxHeight: '85vh',
+  overflowY: 'auto',
+  boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+};
 
 function PatientCard({ patientId }) {
   const [patient, setPatient] = useState(null);
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -81,77 +212,87 @@ function PatientCard({ patientId }) {
   const borderColor = borderColors[severity];
 
   return (
-    <div style={cardStyle(borderColor)}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <div>
-          <h3 style={{ margin: 0, color: '#2c3e50', fontSize: '16px' }}>{patientId}</h3>
-          <span style={{ fontSize: '12px', color: '#7f8c8d' }}>Age: {patient?.age}</span>
-        </div>
-        <SeverityBadge severity={severity} />
-      </div>
+    <>
+      <div style={{...cardStyle(borderColor), cursor: 'pointer'}} onClick={() => setShowModal(true)}>
 
-      {/* Risk probability bar */}
-      <div style={{ marginBottom: '12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '12px', color: '#7f8c8d' }}>Deterioration Risk</span>
-          <span style={{ fontSize: '12px', fontWeight: 'bold', color: borderColor }}>
-            {Math.round((prediction?.deterioration_probability || 0) * 100)}%
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div>
+            <h3 style={{ margin: 0, color: '#2c3e50', fontSize: '16px' }}>{patientId}</h3>
+            <span style={{ fontSize: '12px', color: '#7f8c8d' }}>Age: {patient?.age}</span>
+          </div>
+          <SeverityBadge severity={severity} />
+        </div>
+
+        {/* Risk probability bar */}
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ fontSize: '12px', color: '#7f8c8d' }}>Deterioration Risk</span>
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: borderColor }}>
+              {Math.round((prediction?.deterioration_probability || 0) * 100)}%
+            </span>
+          </div>
+          <div style={{ backgroundColor: '#ecf0f1', borderRadius: '4px', height: '8px' }}>
+            <div style={{
+              width: `${(prediction?.deterioration_probability || 0) * 100}%`,
+              backgroundColor: borderColor,
+              height: '8px',
+              borderRadius: '4px',
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
+        </div>
+
+        {/* Vitals */}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          <VitalItem label="HR"    value={patient?.vitals?.heart_rate}        unit="bpm" />
+          <VitalItem label="SBP"   value={patient?.vitals?.systolic_bp}       unit="mmHg" />
+          <VitalItem label="SpO2"  value={patient?.vitals?.spo2}              unit="%" />
+          <VitalItem label="Resp"  value={patient?.vitals?.respiratory_rate}  unit="/min" />
+          <VitalItem label="Temp"  value={patient?.vitals?.temperature}       unit="°C" />
+        </div>
+
+        {/* SHAP Chart */}
+        <div style={{ marginTop: '8px' }}>
+          <span style={{ fontSize: '11px', color: '#7f8c8d', display: 'block', marginBottom: '6px' }}>
+            Risk drivers:
           </span>
+          {prediction?.shap_values &&
+            Object.entries(prediction.shap_values)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5)
+              .map(([vital, value], i) => (
+                <div key={i} style={{ marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                    <span style={{ fontSize: '10px', color: '#7f8c8d' }}>{vital}</span>
+                    <span style={{ fontSize: '10px', color: '#e74c3c', fontWeight: 'bold' }}>
+                      +{value.toFixed(3)}
+                    </span>
+                  </div>
+                  <div style={{ backgroundColor: '#ecf0f1', borderRadius: '4px', height: '5px' }}>
+                    <div style={{
+                      width: `${Math.min(value * 300, 100)}%`,
+                      backgroundColor: '#e74c3c',
+                      height: '5px',
+                      borderRadius: '4px',
+                    }} />
+                  </div>
+                </div>
+              ))
+          }
         </div>
-        <div style={{ backgroundColor: '#ecf0f1', borderRadius: '4px', height: '8px' }}>
-          <div style={{
-            width: `${(prediction?.deterioration_probability || 0) * 100}%`,
-            backgroundColor: borderColor,
-            height: '8px',
-            borderRadius: '4px',
-            transition: 'width 0.5s ease',
-          }} />
-        </div>
+
       </div>
 
-      {/* Vitals */}
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-        <VitalItem label="HR"    value={patient?.vitals?.heart_rate}        unit="bpm" />
-        <VitalItem label="SBP"   value={patient?.vitals?.systolic_bp}       unit="mmHg" />
-        <VitalItem label="SpO2"  value={patient?.vitals?.spo2}              unit="%" />
-        <VitalItem label="Resp"  value={patient?.vitals?.respiratory_rate}  unit="/min" />
-        <VitalItem label="Temp"  value={patient?.vitals?.temperature}       unit="°C" />
-      </div>
-
-    {/* SHAP Chart */}
-      <div style={{ marginTop: '8px' }}>
-        <span style={{ fontSize: '11px', color: '#7f8c8d', display: 'block', marginBottom: '6px' }}>
-          Risk drivers:
-        </span>
-        {prediction?.shap_values &&
-          Object.entries(prediction.shap_values)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([vital, value], i) => (
-              <div key={i} style={{ marginBottom: '4px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                  <span style={{ fontSize: '10px', color: '#7f8c8d' }}>{vital}</span>
-                  <span style={{ fontSize: '10px', color: '#e74c3c', fontWeight: 'bold' }}>
-                    +{value.toFixed(3)}
-                  </span>
-                </div>
-                <div style={{ backgroundColor: '#ecf0f1', borderRadius: '4px', height: '5px' }}>
-                  <div style={{
-                    width: `${Math.min(value * 300, 100)}%`,
-                    backgroundColor: '#e74c3c',
-                    height: '5px',
-                    borderRadius: '4px',
-                  }} />
-                </div>
-              </div>
-            ))
-        }
-      </div>
-    </div>
+      {showModal && (
+        <PatientModal
+          patientId={patientId}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </>
   );
 }
-
 function statCardStyle(borderColor) {
   return {
     backgroundColor: 'white',
