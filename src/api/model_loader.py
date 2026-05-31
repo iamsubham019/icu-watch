@@ -3,8 +3,12 @@ Model Loader — connects Subham's trained LSTM to Swarnali's FastAPI
 Authors: Swarnali Ghosh & Subham Pal
 """
 
-import torch
-import torch.nn as nn
+try:
+    import torch
+    import torch.nn as nn
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
 import numpy as np
 import joblib
 import json
@@ -69,31 +73,35 @@ class ModelLoader:
         self.loaded       = False
         self._load()
 
-    def _load(self):
-        try:
-            # Load config
-            with open(CONFIG_PATH) as f:
-                self.config = json.load(f)
+def _load(self):
+    if not TORCH_AVAILABLE:
+        print('⚠️  PyTorch not available — using mock predictions')
+        self.loaded = False
+        return
+    try:
+        # Load config
+        with open(CONFIG_PATH) as f:
+            self.config = json.load(f)
 
-            # Load scaler and feature columns
-            self.scaler       = joblib.load(SCALER_PATH)
-            self.feature_cols = joblib.load(FEATURES_PATH)
+        # Load scaler and feature columns
+        self.scaler       = joblib.load(SCALER_PATH)
+        self.feature_cols = joblib.load(FEATURES_PATH)
 
-            # Load model
-            n_features  = self.config['n_features']
-            self.model  = ICUDeteriorationLSTM(input_size=n_features).to(self.device)
-            checkpoint  = torch.load(MODEL_PATH, map_location=self.device)
-            self.model.load_state_dict(checkpoint['model_state'])
-            self.model.eval()
+        # Load model
+        n_features  = self.config['n_features']
+        self.model  = ICUDeteriorationLSTM(input_size=n_features).to(self.device)
+        checkpoint  = torch.load(MODEL_PATH, map_location=self.device)
+        self.model.load_state_dict(checkpoint['model_state'])
+        self.model.eval()
 
-            self.loaded = True
-            print(f'✅ LSTM model loaded on {self.device}')
-            print(f'   Val AUROC: {checkpoint["val_auroc"]:.4f}')
+        self.loaded = True
+        print(f'✅ LSTM model loaded on {self.device}')
+        print(f'   Val AUROC: {checkpoint["val_auroc"]:.4f}')
 
-        except Exception as e:
-            print(f'⚠️  Model not loaded: {e}')
-            print('   Using mock predictions instead')
-            self.loaded = False
+    except Exception as e:
+        print(f'⚠️  Model not loaded: {e}')
+        print('   Using mock predictions instead')
+        self.loaded = False
 
     def predict(self, vitals: dict) -> dict:
         """
